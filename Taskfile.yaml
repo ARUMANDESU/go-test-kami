@@ -1,0 +1,22 @@
+version: "3"
+
+tasks:
+  run:
+    aliases:
+      - r
+    cmd: go run cmd/main.go
+
+  test:coverage:
+    aliases:
+      - tc
+    cmd: gotest -short -race -coverprofile=./test/c.out ./... && go tool cover -html="./test/c.out"
+
+  test:unit:
+    aliases:
+      - tu
+    cmd: gotest -v -race -short $(go list ./... | grep -v '/test')
+
+  test:integration:
+    aliases:
+      - ti
+    cmd: gotest -v -race ./test/...

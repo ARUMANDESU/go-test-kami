@@ -9,7 +9,7 @@ import (
 )
 
 type ReservationService interface {
-	ReserveRoom(ctx context.Context, dto domain.ReservationCreateDTO) error
+	ReserveRoom(ctx context.Context, dto domain.ReservationCreateDTO) (domain.Reservation, error)
 	GetRoomReservations(ctx context.Context, roomID string) ([]domain.Reservation, error)
 }
 

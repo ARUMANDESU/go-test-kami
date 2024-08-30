@@ -1,7 +1,9 @@
 package domain
 
+import "time"
+
 type ReservationCreateDTO struct {
-	RoomID    string `json:"room_id"`
-	StartTime int64  `json:"start_time"`
-	EndTime   int64  `json:"end_time"`
+	RoomID    string    `json:"room_id"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
 }

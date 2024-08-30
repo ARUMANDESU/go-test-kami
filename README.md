@@ -78,6 +78,7 @@ Test task for Kami
    ```dotenv
    ENV=local #local, test, dev, prod
    HTTP_PORT=8080
+   DATABASE_URL=postgresql://user:password@localhost:5432/dbname
    ```
 4. Run the service
    ```sh

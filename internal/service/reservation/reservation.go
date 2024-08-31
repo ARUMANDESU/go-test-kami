@@ -26,7 +26,7 @@ type Reserver interface {
 	// ReserveRoom reserves a room for a given time range.
 	// It returns the reservation if the room is available, otherwise it returns an error.
 	// If the reservation conflicts with another reservation, the function returns an `ErrResevationConflict` error.
-	ReserveRoom(ctx context.Context, dto domain.ReservationCreateDTO) (domain.Reservation, error)
+	ReserveRoom(ctx context.Context, reservation domain.Reservation) (domain.Reservation, error)
 }
 
 type Service struct {
@@ -84,7 +84,7 @@ func (s Service) ReserveRoom(ctx context.Context, dto domain.ReservationCreateDT
 		}
 	}
 
-	reservation, err := s.reserver.ReserveRoom(ctx, dto)
+	reservation, err := s.reserver.ReserveRoom(ctx, newReservation)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrResevationConflict):

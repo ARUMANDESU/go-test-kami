@@ -180,7 +180,7 @@ func TestReserveRoom_HappyPath(t *testing.T) {
 
 			s.mockProvider.On("GetRoomReservations", mock.Anything, tt.dto.RoomID).Return(tt.onGetRoomReservations, tt.onGetRoomReservationsError)
 
-			s.mockReserver.On("ReserveRoom", mock.Anything, tt.dto).Return(domain.Reservation{
+			s.mockReserver.On("ReserveRoom", mock.Anything, mock.AnythingOfType("domain.Reservation")).Return(domain.Reservation{
 				ID:        uuid.Must(uuid.NewV7()),
 				RoomID:    uuid.FromStringOrNil(tt.dto.RoomID),
 				StartTime: tt.dto.StartTime,
@@ -286,7 +286,7 @@ func TestReserveRoom_FailPath(t *testing.T) {
 				defer s.mockProvider.AssertExpectations(t)
 
 				if tt.onReserve {
-					s.mockReserver.On("ReserveRoom", mock.Anything, tt.dto).Return(domain.Reservation{}, tt.onReserveError)
+					s.mockReserver.On("ReserveRoom", mock.Anything, mock.AnythingOfType("domain.Reservation")).Return(domain.Reservation{}, tt.onReserveError)
 					defer s.mockReserver.AssertExpectations(t)
 				}
 			}

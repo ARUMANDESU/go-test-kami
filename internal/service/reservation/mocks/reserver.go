@@ -14,9 +14,9 @@ type Reserver struct {
 	mock.Mock
 }
 
-// ReserveRoom provides a mock function with given fields: ctx, dto
-func (_m *Reserver) ReserveRoom(ctx context.Context, dto domain.ReservationCreateDTO) (domain.Reservation, error) {
-	ret := _m.Called(ctx, dto)
+// ReserveRoom provides a mock function with given fields: ctx, _a1
+func (_m *Reserver) ReserveRoom(ctx context.Context, _a1 domain.Reservation) (domain.Reservation, error) {
+	ret := _m.Called(ctx, _a1)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ReserveRoom")
@@ -24,17 +24,17 @@ func (_m *Reserver) ReserveRoom(ctx context.Context, dto domain.ReservationCreat
 
 	var r0 domain.Reservation
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, domain.ReservationCreateDTO) (domain.Reservation, error)); ok {
-		return rf(ctx, dto)
+	if rf, ok := ret.Get(0).(func(context.Context, domain.Reservation) (domain.Reservation, error)); ok {
+		return rf(ctx, _a1)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, domain.ReservationCreateDTO) domain.Reservation); ok {
-		r0 = rf(ctx, dto)
+	if rf, ok := ret.Get(0).(func(context.Context, domain.Reservation) domain.Reservation); ok {
+		r0 = rf(ctx, _a1)
 	} else {
 		r0 = ret.Get(0).(domain.Reservation)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, domain.ReservationCreateDTO) error); ok {
-		r1 = rf(ctx, dto)
+	if rf, ok := ret.Get(1).(func(context.Context, domain.Reservation) error); ok {
+		r1 = rf(ctx, _a1)
 	} else {
 		r1 = ret.Error(1)
 	}

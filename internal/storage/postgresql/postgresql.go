@@ -2,10 +2,14 @@ package postgresql
 
 import (
 	"context"
+	"embed"
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+//go:embed migrations
+var MigrationsFs embed.FS
 
 type Storage struct {
 	Pool *pgxpool.Pool

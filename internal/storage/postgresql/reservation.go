@@ -54,58 +54,80 @@ func (s Storage) GetRoomReservations(ctx context.Context, roomID string) ([]doma
 // If the reservation conflicts with another reservation, the function returns an `ErrResevationConflict` error.
 func (s Storage) ReserveRoom(ctx context.Context, reservation domain.Reservation) (domain.Reservation, error) {
 	const op = "storage.postgresql.ReserveRoom"
+	const maxRetries = 3
 
-	tx, err := s.Pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
-	if err != nil {
-		return domain.Reservation{}, fmt.Errorf("%s: %s: %w", op, "failed to begin transaction", err)
-	}
+	var err error
+	for i := 0; i < maxRetries; i++ {
+		tx, err := s.Pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+		if err != nil {
+			return domain.Reservation{}, fmt.Errorf("%s: %s: %w", op, "failed to begin transaction", err)
+		}
 
-	query := `
-		SELECT  COUNT(*)
-		FROM    reservations
-		WHERE   room_id = $1 AND (start_time, end_time) OVERLAPS ($2, $3)
-	`
+		query := `
+			SELECT COUNT(*)
+			FROM   reservations
+			WHERE  room_id = $1 AND (start_time, end_time) OVERLAPS ($2, $3)
+		`
 
-	var count int
+		var count int
+		err = tx.QueryRow(ctx, query, reservation.RoomID, reservation.StartTime, reservation.EndTime).Scan(&count)
+		if err != nil {
+			tx.Rollback(ctx)
+			return domain.Reservation{}, fmt.Errorf("%s: %s: %w", op, "failed to query database", err)
+		}
 
-	err = tx.QueryRow(ctx, query, reservation.RoomID, reservation.StartTime, reservation.EndTime).Scan(&count)
-	if err != nil {
-		tx.Rollback(ctx)
-		return domain.Reservation{}, fmt.Errorf("%s: %s: %w", op, "failed to query database", err)
-	}
+		if count > 0 {
+			tx.Rollback(ctx)
+			return domain.Reservation{}, fmt.Errorf("%s: %w", op, storage.ErrResevationConflict)
+		}
 
-	if count > 0 {
-		tx.Rollback(ctx)
-		return domain.Reservation{}, fmt.Errorf("%s: %w", op, storage.ErrResevationConflict)
-	}
+		query = `
+			INSERT INTO reservations (id, room_id, start_time, end_time, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		`
 
-	query = `
-		INSERT INTO reservations (id, room_id, start_time, end_time)
-		VALUES ($1, $2, $3, $4)
-	`
-
-	result, err := tx.Exec(ctx, query, reservation.ID, reservation.RoomID, reservation.StartTime, reservation.EndTime)
-	if err != nil {
-		tx.Rollback(ctx)
-		return domain.Reservation{}, fmt.Errorf("%s: %s: %w", op, "failed to insert reservation", err)
-	}
-
-	// check if the reservation was inserted
-	if result.RowsAffected() != 1 {
-		tx.Rollback(ctx)
-		return domain.Reservation{}, fmt.Errorf("%s: %s", op, "failed to insert reservation")
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			switch pgErr.Code {
-			case pgerrcode.SerializationFailure:
-				return domain.Reservation{}, fmt.Errorf("%s: %s: %w", op, "serialization failure", err)
-			default:
-				return domain.Reservation{}, fmt.Errorf("%s: %s: %w", op, "failed to commit transaction", err)
+		result, err := tx.Exec(ctx, query, reservation.ID, reservation.RoomID, reservation.StartTime, reservation.EndTime)
+		if err != nil {
+			if pgErr, ok := err.(*pgconn.PgError); ok {
+				switch pgErr.Code {
+				case pgerrcode.SerializationFailure:
+					tx.Rollback(ctx)
+					// Retry on serialization failure
+					continue
+				default:
+					tx.Rollback(ctx)
+					return domain.Reservation{}, fmt.Errorf("%s: %s: %w", op, "failed to insert reservation", err)
+				}
 			}
 		}
+
+		// check if the reservation was inserted
+		if result.RowsAffected() != 1 {
+			tx.Rollback(ctx)
+			return domain.Reservation{}, fmt.Errorf("%s: %s", op, "failed to insert reservation (no rows affected)")
+		}
+
+		err = tx.Commit(ctx)
+		if err != nil {
+			if pgErr, ok := err.(*pgconn.PgError); ok {
+				switch pgErr.Code {
+				case pgerrcode.SerializationFailure:
+					tx.Rollback(ctx)
+					// Retry on serialization failure
+					continue
+				default:
+					tx.Rollback(ctx)
+					return domain.Reservation{}, fmt.Errorf("%s: %s: %w", op, "failed to commit transaction", err)
+				}
+			}
+		}
+
+		// If commit was successful, break the loop
+		break
+	}
+
+	if err != nil {
+		return domain.Reservation{}, fmt.Errorf("%s: %s: %w", op, "transaction failed after retries", err)
 	}
 
 	return reservation, nil

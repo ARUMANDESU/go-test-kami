@@ -7,10 +7,10 @@ import (
 )
 
 type Reservation struct {
-	ID        uuid.UUID
-	RoomID    uuid.UUID
-	StartTime time.Time
-	EndTime   time.Time
+	ID        uuid.UUID `json:"id"`
+	RoomID    uuid.UUID `json:"room_id"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
 }
 
 // OverlapsWith checks if the reservation overlaps with another reservation.

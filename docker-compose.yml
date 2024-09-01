@@ -1,0 +1,50 @@
+version: '3.8'
+name: 'go-test-kami-arumandesu'
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: "postgres"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password 
+      POSTGRES_DB: test-kami
+    ports:
+      - "5432:5432"
+    networks:
+      app:
+        aliases:
+          - database
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: "go-test-kami"
+    ports:
+      - "8080:8080"
+    environment:
+      - ENV=dev
+      - PORT=8080
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/test-kami # host is the container name of the postgres service
+    networks:
+      - app
+    depends_on:
+      - postgres
+    restart: always
+
+
+networks:
+  app:
+    
+volumes:
+  postgres-data:

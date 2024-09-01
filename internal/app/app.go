@@ -8,21 +8,31 @@ import (
 
 	"github.com/ARUMANDESU/go-test-kami/internal/api"
 	"github.com/ARUMANDESU/go-test-kami/internal/config"
+	"github.com/ARUMANDESU/go-test-kami/internal/service/reservation"
+	"github.com/ARUMANDESU/go-test-kami/internal/storage/postgresql"
 	"github.com/ARUMANDESU/go-test-kami/pkg/logger"
 )
 
 type App struct {
 	log        *slog.Logger
 	httpServer *http.Server
+	storage    postgresql.Storage
 }
 
-func NewApp(cfg config.Config, logger *slog.Logger) *App {
+func NewApp(ctx context.Context, cfg config.Config, logger *slog.Logger) *App {
 	const op = "app.NewApp"
 	log := logger.With("op", op)
 
 	log.Info("creating new app")
 
-	httpAPI := api.NewAPI(logger, nil) // TODO: add reservation service
+	storage, err := postgresql.NewStorage(ctx, cfg.DatabaseURL)
+	if err != nil {
+		panic(err)
+	}
+
+	reservationService := reservation.NewService(logger, storage, storage)
+
+	httpAPI := api.NewAPI(logger, reservationService)
 
 	httpServer := httpAPI.HTTPServer(":" + cfg.HTTP.Port)
 
@@ -42,5 +52,14 @@ func (a App) Start() error {
 }
 
 func (a App) Stop() error {
-	return a.httpServer.Shutdown(context.TODO())
+	const op = "app.Stop"
+	log := a.log.With("op", op)
+
+	if err := a.httpServer.Shutdown(context.Background()); err != nil {
+		log.Error("HTTP server shutdown error", logger.Err(err))
+	}
+
+	a.storage.Close()
+
+	return nil
 }

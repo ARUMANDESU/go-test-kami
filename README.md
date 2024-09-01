@@ -57,48 +57,52 @@ Test task for Kami
 * Go version 1.23.0
 * [Docker](https://www.docker.com/get-started)
 * [Taskfile 3](https://taskfile.dev/installation/) 
-
-  ```sh
-    go version
-    docker --version
-    task --version
-  ```
+```sh
+go version
+docker --version
+task --version
+```
 
 ### Installation
 
 1. Clone the repo
-   ```sh
-   git clone https://github.com/ARUMANDESU/go-test-kami.git
-   ```
+    ```sh
+    git clone https://github.com/ARUMANDESU/go-test-kami.git
+    ```
 2. Change directory
-   ```sh
-   cd go-test-kami
-   ```
+    ```sh
+    cd go-test-kami
+    ```
 3. Write the environment variables in the `.env` file
-   ```dotenv
-   ENV=local #local, test, dev, prod
-   HTTP_PORT=8080
-   DATABASE_URL=postgresql://user:password@localhost:5432/dbname
-   ```
+    ```dotenv
+    ENV=local #local, test, dev, prod
+    HTTP_PORT=8080
+    DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+    ```
 4. Run the service
-   ```sh
-   task r
-   ```
+    ```sh
+    task r
+    ```
+
+   or run on docker(with docker compose)
+    ```sh
+    task rc
+    ```
 
 ## Testing
 
 1. Coverage 
-   ```sh
-   task tc
-   ```
+    ```sh
+    task tc
+    ```
 2. Unit tests
-   ```sh
-   task tu
-   ```
+    ```sh
+    task tu
+    ```
 3. Integration tests
-   ```sh
-   task ti
-   ```
+    ```sh
+    task ti
+    ```
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

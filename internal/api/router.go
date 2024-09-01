@@ -20,9 +20,9 @@ func (a *API) ChiRouter() *chi.Mux {
 			w.Write([]byte("ok"))
 		})
 
-		v1.Post("/reservation", a.ReserveRoom)
+		v1.Post("/reservations", a.ReserveRoom)
 
-		v1.Get("/reservation/{roomID}", a.GetRoomReservations)
+		v1.Get("/reservations/{room_id}", a.GetRoomReservations)
 	})
 
 	return r

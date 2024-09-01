@@ -6,6 +6,11 @@ tasks:
       - r
     cmd: go run cmd/main.go
 
+  run:compose:
+    aliases:
+      - rc
+    cmd: docker compose -f docker-compose.yml up
+
   test:coverage:
     aliases:
       - tc

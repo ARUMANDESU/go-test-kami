@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -26,7 +27,7 @@ func main() {
 
 	log.Info("starting the app", slog.Attr{Key: "env", Value: slog.StringValue(cfg.Env)})
 
-	application := app.NewApp(*cfg, log)
+	application := app.NewApp(context.Background(), *cfg, log)
 
 	go application.Start()
 
@@ -34,6 +35,7 @@ func main() {
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
 	sign := <-stop
-	defer log.Info("application stopped", slog.String("signal", sign.String()))
 	log.Info("stopping application", slog.String("signal", sign.String()))
+	application.Stop()
+	log.Info("application stopped", slog.String("signal", sign.String()))
 }

@@ -1,9 +1,11 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/ARUMANDESU/go-test-kami/internal/domain"
+	"github.com/ARUMANDESU/go-test-kami/internal/service/reservation"
 	"github.com/segmentio/encoding/json"
 )
 
@@ -17,15 +19,21 @@ func (a API) ReserveRoom(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 
-	reservation, err := a.ReservationService.ReserveRoom(ctx, dto)
+	reservedRoom, err := a.ReservationService.ReserveRoom(ctx, dto)
 	if err != nil {
-		// TODO: handle error
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		switch {
+		case errors.Is(err, reservation.ErrReservationConflict):
+			http.Error(w, err.Error(), http.StatusConflict)
+		case errors.Is(err, reservation.ErrInvalidArgument):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
 
 	// encode response
-	if err := json.NewEncoder(w).Encode(reservation); err != nil {
+	if err := json.NewEncoder(w).Encode(reservedRoom); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -37,7 +45,12 @@ func (a API) GetRoomReservations(w http.ResponseWriter, r *http.Request) {
 	roomID := r.URL.Query().Get("room_id")
 	reservations, err := a.ReservationService.GetRoomReservations(ctx, roomID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		switch {
+		case errors.Is(err, reservation.ErrInvalidArgument):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
 

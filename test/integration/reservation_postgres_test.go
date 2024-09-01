@@ -89,6 +89,7 @@ func TestReservationService_ReserveRoom_Concurrently(t *testing.T) {
 	s := NewReservationSuite(t)
 
 	var errCount int
+	var mu sync.Mutex
 	var wg sync.WaitGroup
 	concurrentReservations := 20
 	dto := domain.ReservationCreateDTO{
@@ -104,7 +105,9 @@ func TestReservationService_ReserveRoom_Concurrently(t *testing.T) {
 			reservedRoom, err := s.service.ReserveRoom(context.Background(), dto)
 
 			if errors.Is(err, reservation.ErrReservationConflict) {
+				mu.Lock()
 				errCount++
+				mu.Unlock()
 			} else {
 				require.NoError(t, err)
 
@@ -127,4 +130,67 @@ func TestReservationService_ReserveRoom_Concurrently(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Len(t, reservations, 4)
+}
+
+func TestReservationService_ReserveRoom(t *testing.T) {
+	s := NewReservationSuite(t)
+
+	tests := []struct {
+		name    string
+		dto     domain.ReservationCreateDTO
+		wantErr error
+	}{
+		{
+			name: "reverse room successfully",
+			dto: domain.ReservationCreateDTO{
+				RoomID: "018c0f7e-7b9b-7f4b-8e4b-4b5e4b5e4b5f", // room has 3 reservations
+				// there free time between 2024-08-31 12:00:00 and 2024-08-31 14:00:00
+				StartTime: time.Date(2024, 8, 31, 12, 0, 0, 0, time.UTC),
+				EndTime:   time.Date(2024, 8, 31, 14, 0, 0, 0, time.UTC),
+			},
+		},
+		{
+			name: "reverse room successfully",
+			dto: domain.ReservationCreateDTO{
+				RoomID:    "018c0f7e-7b9b-7f4b-8e4b-4b5e4b5e4b67", // room has 0 reservations
+				StartTime: time.Date(2024, 8, 31, 8, 0, 0, 0, time.UTC),
+				EndTime:   time.Date(2024, 8, 31, 20, 0, 0, 0, time.UTC),
+			},
+		},
+		{
+			name: "time conflict",
+			dto: domain.ReservationCreateDTO{
+				RoomID:    "018c0f7e-7b9b-7f4b-8e4b-4b5e4b5e4b5f", // room has 3 reservations
+				StartTime: time.Date(2024, 8, 31, 13, 0, 0, 0, time.UTC),
+				EndTime:   time.Date(2024, 8, 31, 14, 0, 0, 0, time.UTC),
+			},
+			wantErr: reservation.ErrReservationConflict,
+		},
+		{
+			name: "time conflict",
+			dto: domain.ReservationCreateDTO{
+				RoomID:    "018c0f7e-7b9b-7f4b-8e4b-4b5e4b5e4b67", // room has 1 room
+				StartTime: time.Date(2024, 8, 31, 8, 0, 0, 0, time.UTC),
+				EndTime:   time.Date(2024, 8, 31, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: reservation.ErrReservationConflict,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reservedRoom, err := s.service.ReserveRoom(context.Background(), tt.dto)
+
+			if tt.wantErr != nil {
+				assert.ErrorIs(t, err, tt.wantErr)
+			} else {
+				require.NoError(t, err)
+
+				assert.NotEmpty(t, reservedRoom.ID)
+				assert.Equal(t, tt.dto.RoomID, reservedRoom.RoomID.String())
+				assert.Equal(t, tt.dto.StartTime, reservedRoom.StartTime)
+				assert.Equal(t, tt.dto.EndTime, reservedRoom.EndTime)
+			}
+		})
+	}
 }

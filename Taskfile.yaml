@@ -11,6 +11,11 @@ tasks:
       - rc
     cmd: docker compose -f docker-compose.yml up
 
+  run:compose:build:
+    aliases:
+      - rcb
+    cmd: docker compose -f docker-compose.yml up --build
+
   test:coverage:
     aliases:
       - tc

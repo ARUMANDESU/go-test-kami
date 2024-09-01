@@ -23,7 +23,7 @@ func ValidateReservationCreateDTO(value any) error {
 	}
 
 	if dto.EndTime.Before(dto.StartTime) {
-		return errors.New("end time is before start time")
+		return errors.New("end time must be after start time")
 	}
 
 	if dto.StartTime.Equal(dto.EndTime) {

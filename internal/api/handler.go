@@ -6,56 +6,71 @@ import (
 
 	"github.com/ARUMANDESU/go-test-kami/internal/domain"
 	"github.com/ARUMANDESU/go-test-kami/internal/service/reservation"
-	"github.com/segmentio/encoding/json"
+	"github.com/go-chi/chi/v5"
 )
 
-func (a API) ReserveRoom(w http.ResponseWriter, r *http.Request) {
+// NotFound is custom 404 handler
+func (api API) NotFound(w http.ResponseWriter, r *http.Request) {
+	api.notFoundResponse(w, r)
+}
 
-	var dto domain.ReservationCreateDTO
-	// decode request body to dto
-	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+// Healthcheck returns the status of the service
+func (api API) Healthcheck(w http.ResponseWriter, r *http.Request) {
+	api.writeJSON(w, http.StatusOK, envelope{"status": "available"}, nil)
+}
+
+// ReserveRoom reserves a room.
+//
+//	POST /v1/reservations
+//
+//	{
+//		"room_id": "string",
+//		"start_time": "string", // RFC3339
+//		"end_time": "string" // RFC3339
+//	}
+func (api API) ReserveRoom(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	var dto domain.ReservationCreateDTO
 
-	reservedRoom, err := a.ReservationService.ReserveRoom(ctx, dto)
+	api.readJSON(w, r, &dto)
+
+	reservedRoom, err := api.ReservationService.ReserveRoom(ctx, dto)
 	if err != nil {
 		switch {
 		case errors.Is(err, reservation.ErrReservationConflict):
-			http.Error(w, err.Error(), http.StatusConflict)
+			api.conflictResponse(w, r)
 		case errors.Is(err, reservation.ErrInvalidArgument):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			api.failedValidationResponse(w, r, err)
 		default:
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			api.serverErrorResponse(w, r, err)
 		}
 		return
 	}
 
-	// encode response
-	if err := json.NewEncoder(w).Encode(reservedRoom); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	api.writeJSON(w, http.StatusCreated, envelope{"reservation": reservedRoom}, nil)
 }
 
-func (a API) GetRoomReservations(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+// GetRoomReservations returns all reservations for a room.
+//
+//	GET /v1/reservations/{room_id}
+func (api API) GetRoomReservations(w http.ResponseWriter, r *http.Request) {
+	roomID := chi.URLParam(r, "room_id")
+	if roomID == "" {
+		api.failedValidationResponse(w, r, errors.New("missing room_id parameter"))
+		return
+	}
 
-	roomID := r.URL.Query().Get("room_id")
-	reservations, err := a.ReservationService.GetRoomReservations(ctx, roomID)
+	ctx := r.Context()
+	reservations, err := api.ReservationService.GetRoomReservations(ctx, roomID)
 	if err != nil {
 		switch {
 		case errors.Is(err, reservation.ErrInvalidArgument):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			api.failedValidationResponse(w, r, err)
 		default:
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			api.serverErrorResponse(w, r, err)
 		}
 		return
 	}
 
-	if err := json.NewEncoder(w).Encode(reservations); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	api.writeJSON(w, http.StatusOK, envelope{"reservations": reservations}, nil)
 }

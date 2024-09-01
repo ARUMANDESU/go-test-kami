@@ -74,6 +74,12 @@ task --version
     cd go-test-kami
     ```
 3. Write the environment variables in the `.env` file
+    ```sh
+    touch .env
+    ```
+    ```sh
+    nano .env #or use your favorite text editor
+    ```
     ```dotenv
     ENV=local #local, test, dev, prod
     HTTP_PORT=8080
@@ -83,11 +89,16 @@ task --version
     ```sh
     task r
     ```
-
-   or run on docker(with docker compose)
+    or run on docker(with docker compose)
     ```sh
     task rc
     ```
+    to compose build
+    ```sh
+    task rcb
+    ```
+  
+  
 
 ## Testing
 

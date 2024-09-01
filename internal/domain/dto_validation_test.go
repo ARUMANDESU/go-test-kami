@@ -73,7 +73,7 @@ func TestValidateReservationCreateDTO(t *testing.T) {
 				EndTime:   timeNow.Add(1 * time.Hour),
 			},
 			wantErr: true,
-			errMsg:  "end time is before start time",
+			errMsg:  "end time must be after start time",
 		},
 		{
 			name: "StartTime is equal to EndTime",

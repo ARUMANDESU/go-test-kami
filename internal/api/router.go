@@ -1,8 +1,6 @@
 package api
 
 import (
-	"net/http"
-
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	slogchi "github.com/samber/slog-chi"
@@ -15,14 +13,13 @@ func (a *API) ChiRouter() *chi.Mux {
 	r.Use(slogchi.New(a.log))
 	r.Use(middleware.Recoverer)
 
-	r.Route("/v1", func(v1 chi.Router) {
-		v1.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("ok"))
-		})
+	r.NotFound(a.NotFound)
 
-		v1.Post("/reservations", a.ReserveRoom)
+	r.Route("/v1", func(r chi.Router) {
+		r.Get("/healthcheck", a.Healthcheck)
+		r.Get("/reservations/{room_id}", a.GetRoomReservations)
 
-		v1.Get("/reservations/{room_id}", a.GetRoomReservations)
+		r.Post("/reservations", a.ReserveRoom)
 	})
 
 	return r
